@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LuxeFinance | Premium Wealth Tracker</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gold: {
+                            400: '#D4AF37',
+                            500: '#C5A028',
+                            600: '#B08D26',
+                        },
+                        luxury: {
+                            dark: '#121212',
+                            panel: '#1E1E1E',
+                            light: '#F9FAFB',
+                        }
+                    },
+                    fontFamily: {
+                        serif: ['Playfair Display', 'serif'],
+                        sans: ['Lato', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Luxury Styles */
+        body {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .glass-panel {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dark .glass-panel {
+            background: rgba(30, 30, 30, 0.7);
+            border-color: rgba(212, 175, 55, 0.1);
+        }
+
+        .light .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* Gold Gradient Text */
+        .text-gold-gradient {
+            background: linear-gradient(to right, #D4AF37, #F2E8C4, #D4AF37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: shine 3s linear infinite;
+        }
+
+        @keyframes shine {
+            to {
+                background-position: 200% center;
+            }
+        }
+
+        /* Hide Scrollbar */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 dark:bg-luxury-dark dark:text-gray-100 antialiased min-h-screen pb-20 transition-all duration-300">
+
+    <div id="passcodeModal" class="fixed inset-0 z-50 bg-luxury-dark flex flex-col items-center justify-center p-4 hidden">
+        <h2 class="font-serif text-3xl text-gold-400 mb-6">LuxeFinance</h2>
+        <p class="text-gray-400 mb-4">Enter Passcode to Access</p>
+        <input type="password" id="passcodeInput" class="bg-gray-800 border border-gold-600 text-white text-center text-2xl p-3 rounded-lg w-48 mb-4 tracking-widest" maxlength="4">
+        <button onclick="checkPasscode()" class="bg-gold-500 text-black px-8 py-2 rounded-full font-bold hover:bg-gold-400 transition">Unlock</button>
+    </div>
+
+    <nav class="sticky top-0 z-40 glass-panel px-4 py-3 shadow-md flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-gem text-gold-400 text-xl"></i>
+            <h1 class="font-serif text-xl font-bold tracking-wide">Luxe<span class="text-gold-400">Finance</span></h1>
+        </div>
+        <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition">
+            <i id="themeIcon" class="fa-solid fa-moon text-lg"></i>
+        </button>
+    </nav>
+
+    <main id="appContainer" class="container mx-auto px-4 py-6 max-w-lg">
+
+        <div id="view-dashboard" class="view-section animate-fade-in">
+            <div class="glass-panel rounded-2xl p-6 mb-6 shadow-lg relative overflow-hidden group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition">
+                    <i class="fa-solid fa-wallet text-6xl"></i>
+                </div>
+                <p class="text-sm uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">Total Net Worth</p>
+                <h2 id="totalNetWorth" class="font-serif text-4xl font-bold text-gray-900 dark:text-white mb-4">$0.00</h2>
+                <div class="flex gap-4 text-sm">
+                    <div class="flex items-center gap-1 text-green-500">
+                        <i class="fa-solid fa-arrow-up"></i>
+                        <span id="totalIncomeVal">$0.00</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-red-500">
+                        <i class="fa-solid fa-arrow-down"></i>
+                        <span id="totalExpenseVal">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-6 mb-6">
+                <div class="glass-panel rounded-xl p-4 shadow-md">
+                    <h3 class="font-serif text-lg mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">Spending by Category</h3>
+                    <div class="h-64">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="glass-panel rounded-xl p-4 shadow-md">
+                    <h3 class="font-serif text-lg mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">Income vs Expense</h3>
+                    <div class="h-48">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-between items-end mb-3">
+                <h3 class="font-serif text-xl font-bold">Recent Activity</h3>
+                <button onclick="switchView('history')" class="text-gold-500 text-sm hover:underline">View All</button>
+            </div>
+            <div id="recentList" class="space-y-3 pb-20">
+                </div>
+        </div>
+
+        <div id="view-add" class="view-section hidden">
+            <h2 class="font-serif text-2xl mb-6 text-center">New Entry</h2>
+            
+            <div class="glass-panel rounded-2xl p-6 shadow-xl">
+                <div class="flex bg-gray-200 dark:bg-gray-800 rounded-lg p-1 mb-6">
+                    <button onclick="setTransType('expense')" id="btn-expense" class="flex-1 py-2 rounded-md text-sm font-bold transition-all bg-white dark:bg-gray-700 shadow text-red-500">Expense</button>
+                    <button onclick="setTransType('income')" id="btn-income" class="flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition-all">Income</button>
+                </div>
+
+                <form id="transactionForm" onsubmit="addTransaction(event)">
+                    <div class="mb-4">
+                        <label class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Amount</label>
+                        <div class="relative">
+                            <span id="formCurrencySymbol" class="absolute left-3 top-3 text-gray-400">$</span>
+                            <input type="number" id="inpAmount" step="0.01" required class="w-full pl-8 pr-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-gold-500 outline-none transition text-xl font-bold">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Date</label>
+                            <input type="date" id="inpDate" required class="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-gold-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Category</label>
+                            <select id="inpCategory" class="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-gold-500 outline-none appearance-none">
+                                </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Account</label>
+                        <select id="inpAccount" class="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-gold-500 outline-none">
+                            <option value="Cash">Cash Wallet</option>
+                            <option value="Bank">Main Bank Account</option>
+                            <option value="Card">Credit Card</option>
+                            <option value="Savings">Savings Vault</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-xs uppercase tracking-wider text-gray-500 mb-1">Note / Receipt Ref</label>
+                        <input type="text" id="inpNote" placeholder="e.g. Dinner at Shangri-La" class="w-full px-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:border-gold-500 outline-none">
+                    </div>
+
+                    <button type="submit" class="w-full bg-gold-500 hover:bg-gold-600 text-black font-bold py-4 rounded-xl shadow-lg transform active:scale-95 transition">
+                        Save Transaction
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="view-settings" class="view-section hidden">
+            <h2 class="font-serif text-2xl mb-6 text-center">Settings</h2>
+
+            <div class="glass-panel rounded-xl p-4 mb-4 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="bg-blue-100 dark:bg-blue-900 p-2 rounded-lg text-blue-600 dark:text-blue-300"><i class="fa-solid fa-coins"></i></div>
+                    <span>Base Currency</span>
+                </div>
+                <select id="settingCurrency" onchange="updateSettings()" class="bg-transparent text-right font-bold outline-none text-gold-500">
+                    <option value="USD">USD ($)</option>
+                    <option value="LKR">LKR (Rs)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                </select>
+            </div>
+
+            <div class="glass-panel rounded-xl p-4 mb-4">
+                <h3 class="font-bold mb-3 text-sm uppercase text-gray-500">Data Management</h3>
+                
+                <button onclick="exportCSV()" class="w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition mb-2">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-file-csv text-green-500"></i> Export to Excel/CSV</span>
+                    <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                </button>
+
+                <button onclick="clearAllData()" class="w-full flex items-center justify-between p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition text-red-500">
+                    <span class="flex items-center gap-2"><i class="fa-solid fa-trash"></i> Reset All Data</span>
+                    <i class="fa-solid fa-chevron-right text-xs text-gray-400"></i>
+                </button>
+            </div>
+
+             <div class="glass-panel rounded-xl p-4 mb-4">
+                <h3 class="font-bold mb-3 text-sm uppercase text-gray-500">Security</h3>
+                <div class="flex items-center justify-between p-3">
+                    <span>App Passcode</span>
+                    <button onclick="setPasscode()" class="text-sm bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded">Set</button>
+                </div>
+            </div>
+            
+            <p class="text-center text-xs text-gray-400 mt-8">LuxeFinance v1.1 • Offline Storage</p>
+        </div>
+
+    </main>
+
+    <div class="fixed bottom-0 left-0 right-0 glass-panel border-t border-gray-200 dark:border-gray-800 pb-safe">
+        <div class="flex justify-around items-center h-16 max-w-lg mx-auto">
+            <button onclick="switchView('dashboard')" class="nav-btn active flex flex-col items-center gap-1 text-gold-500 w-full">
+                <i class="fa-solid fa-chart-pie text-xl"></i>
+                <span class="text-[10px] font-bold uppercase">Overview</span>
+            </button>
+            
+            <button onclick="switchView('add')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-full">
+                <div class="bg-gold-500 text-black rounded-full h-12 w-12 flex items-center justify-center -mt-6 shadow-lg border-4 border-gray-100 dark:border-luxury-dark">
+                    <i class="fa-solid fa-plus text-xl"></i>
+                </div>
+            </button>
+            
+            <button onclick="switchView('settings')" class="nav-btn flex flex-col items-center gap-1 text-gray-400 w-full">
+                <i class="fa-solid fa-sliders text-xl"></i>
+                <span class="text-[10px] font-bold uppercase">Settings</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIG & STATE ---
+        const APP_KEY = 'LuxeFinanceData_v1';
+        let state = {
+            transactions: [],
+            currency: 'USD',
+            passcode: null,
+            theme: 'dark' // default luxury dark
+        };
+
+        const categories = {
+            expense: ['Food & Dining', 'Transport', 'Housing', 'Shopping', 'Entertainment', 'Health', 'Bills', 'Luxury', 'Travel'],
+            income: ['Salary', 'Business', 'Investment', 'Gift', 'Rental', 'Other']
+            // Transfer category removed
+        };
+
+        let currentTransType = 'expense';
+        let pieChartInstance = null;
+        let barChartInstance = null;
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            loadData();
+            applyTheme();
+            
+            // Check Passcode
+            if(state.passcode) {
+                document.getElementById('passcodeModal').classList.remove('hidden');
+            }
+
+            // Set default date
+            document.getElementById('inpDate').valueAsDate = new Date();
+            
+            updateCategoryOptions();
+            renderDashboard();
+            
+            // Setup Tab Switching styling
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    // Middle button (Add) is handled separately visually
+                    if(!this.querySelector('.fa-plus')) {
+                        document.querySelectorAll('.nav-btn').forEach(b => {
+                            if(!b.querySelector('.fa-plus')) {
+                                b.classList.remove('text-gold-500');
+                                b.classList.add('text-gray-400');
+                            }
+                        });
+                        this.classList.add('text-gold-500');
+                        this.classList.remove('text-gray-400');
+                    }
+                });
+            });
+        };
+
+        // --- CORE FUNCTIONS ---
+
+        function loadData() {
+            const stored = localStorage.getItem(APP_KEY);
+            if (stored) {
+                state = JSON.parse(stored);
+                // Ensure currency dropdown matches state
+                document.getElementById('settingCurrency').value = state.currency;
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem(APP_KEY, JSON.stringify(state));
+            renderDashboard();
+        }
+
+        function checkPasscode() {
+            const input = document.getElementById('passcodeInput').value;
+            if(input === state.passcode) {
+                document.getElementById('passcodeModal').classList.add('hidden');
+            } else {
+                alert('Incorrect Passcode');
+            }
+        }
+
+        function setPasscode() {
+            const newCode = prompt("Enter a 4-digit passcode (Leave empty to disable):");
+            if(newCode === null) return;
+            state.passcode = newCode === "" ? null : newCode;
+            saveData();
+            alert("Passcode settings updated.");
+        }
+
+        function updateSettings() {
+            state.currency = document.getElementById('settingCurrency').value;
+            saveData();
+        }
+
+        // --- THEME ---
+        function toggleTheme() {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            saveData();
+            applyTheme();
+        }
+
+        function applyTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('themeIcon');
+            
+            if (state.theme === 'dark') {
+                html.classList.add('dark');
+                html.classList.remove('light');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+            } else {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+            }
+            // Re-render charts to update colors
+            renderDashboard(); 
+        }
+
+        // --- NAVIGATION ---
+        function switchView(viewName) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            
+            if(viewName === 'dashboard') renderDashboard();
+        }
+
+        // --- TRANSACTION LOGIC ---
+        function setTransType(type) {
+            currentTransType = type;
+            
+            // Visual Toggle
+            const btnExp = document.getElementById('btn-expense');
+            const btnInc = document.getElementById('btn-income');
+            
+            [btnExp, btnInc].forEach(btn => {
+                btn.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 transition-all";
+            });
+
+            if(type === 'expense') {
+                btnExp.className = "flex-1 py-2 rounded-md text-sm font-bold transition-all bg-white dark:bg-gray-700 shadow text-red-500";
+            } else if (type === 'income') {
+                btnInc.className = "flex-1 py-2 rounded-md text-sm font-bold transition-all bg-white dark:bg-gray-700 shadow text-green-500";
+            }
+
+            updateCategoryOptions();
+        }
+
+        function updateCategoryOptions() {
+            const select = document.getElementById('inpCategory');
+            select.innerHTML = '';
+            
+            // Safety check for categories
+            if(categories[currentTransType]) {
+                categories[currentTransType].forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.text = cat;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        function addTransaction(e) {
+            e.preventDefault();
+            
+            const amt = parseFloat(document.getElementById('inpAmount').value);
+            const date = document.getElementById('inpDate').value;
+            const cat = document.getElementById('inpCategory').value;
+            const acc = document.getElementById('inpAccount').value;
+            const note = document.getElementById('inpNote').value;
+
+            if(!amt || !date) return;
+
+            const newTrans = {
+                id: Date.now(),
+                type: currentTransType,
+                amount: amt,
+                date: date,
+                category: cat,
+                account: acc,
+                note: note
+            };
+
+            state.transactions.unshift(newTrans);
+            saveData();
+            
+            // Reset Form
+            document.getElementById('inpAmount').value = '';
+            document.getElementById('inpNote').value = '';
+            
+            alert('Transaction Saved!');
+            switchView('dashboard');
+        }
+
+        function deleteTransaction(id) {
+            if(confirm("Delete this transaction?")) {
+                state.transactions = state.transactions.filter(t => t.id !== id);
+                saveData();
+            }
+        }
+
+        // --- DASHBOARD & ANALYTICS ---
+        function getCurrencySymbol(code) {
+            const symbols = { 'USD': '$', 'LKR': 'Rs', 'EUR': '€', 'GBP': '£' };
+            return symbols[code] || '$';
+        }
+
+        function renderDashboard() {
+            const symbol = getCurrencySymbol(state.currency);
+            document.getElementById('formCurrencySymbol').innerText = symbol;
+
+            // 1. Calculate Totals
+            let income = 0;
+            let expense = 0;
+            
+            state.transactions.forEach(t => {
+                if(t.type === 'income') income += t.amount;
+                if(t.type === 'expense') expense += t.amount;
+            });
+
+            const netWorth = income - expense;
+
+            // Animate Numbers (Simple)
+            document.getElementById('totalNetWorth').innerText = `${symbol}${netWorth.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('totalIncomeVal').innerText = `+${symbol}${income.toLocaleString()}`;
+            document.getElementById('totalExpenseVal').innerText = `-${symbol}${expense.toLocaleString()}`;
+
+            // 2. Render List (Top 5)
+            const list = document.getElementById('recentList');
+            list.innerHTML = '';
+            
+            const displayData = state.transactions.slice(0, 10);
+            
+            if(displayData.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 py-4 italic">No transactions yet</div>';
+            }
+
+            displayData.forEach(t => {
+                const isExp = t.type === 'expense';
+                const colorClass = isExp ? 'text-red-500' : 'text-green-500';
+                const sign = isExp ? '-' : '+';
+                const icon = getCategoryIcon(t.category);
+
+                list.innerHTML += `
+                    <div class="glass-panel p-3 rounded-xl flex justify-between items-center relative overflow-hidden">
+                        <div class="flex items-center gap-3 z-10">
+                            <div class="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center text-gold-500">
+                                <i class="${icon}"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-sm text-gray-800 dark:text-gray-100">${t.category}</h4>
+                                <p class="text-xs text-gray-500">${t.date} • ${t.account}</p>
+                            </div>
+                        </div>
+                        <div class="text-right z-10">
+                            <span class="font-bold ${colorClass}">${sign}${symbol}${t.amount.toFixed(2)}</span>
+                            <button onclick="deleteTransaction(${t.id})" class="block text-xs text-gray-400 mt-1 hover:text-red-500 text-right ml-auto">Delete</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            updateCharts(symbol);
+        }
+
+        function getCategoryIcon(cat) {
+            const map = {
+                'Food & Dining': 'fa-solid fa-utensils',
+                'Transport': 'fa-solid fa-car',
+                'Housing': 'fa-solid fa-house',
+                'Shopping': 'fa-solid fa-bag-shopping',
+                'Entertainment': 'fa-solid fa-film',
+                'Health': 'fa-solid fa-heart-pulse',
+                'Bills': 'fa-solid fa-file-invoice-dollar',
+                'Salary': 'fa-solid fa-briefcase',
+                'Investment': 'fa-solid fa-chart-line',
+                'Business': 'fa-solid fa-building'
+            };
+            return map[cat] || 'fa-solid fa-circle-notch';
+        }
+
+        // --- CHART.JS INTEGRATION ---
+        function updateCharts(symbol) {
+            const isDark = state.theme === 'dark';
+            const textColor = isDark ? '#e5e7eb' : '#374151';
+
+            // Prepare Pie Data (Expenses by Category)
+            const catTotals = {};
+            state.transactions.filter(t => t.type === 'expense').forEach(t => {
+                catTotals[t.category] = (catTotals[t.category] || 0) + t.amount;
+            });
+
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            if(pieChartInstance) pieChartInstance.destroy();
+
+            pieChartInstance = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(catTotals),
+                    datasets: [{
+                        data: Object.values(catTotals),
+                        backgroundColor: ['#D4AF37', '#E5E7EB', '#EF4444', '#3B82F6', '#10B981', '#F59E0B'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { color: textColor, boxWidth: 10 } }
+                    }
+                }
+            });
+
+            // Prepare Bar Data (Income vs Expense)
+            // Group by Month (simplified)
+            const incomeTotal = state.transactions.filter(t=>t.type==='income').reduce((a,b)=>a+b.amount,0);
+            const expenseTotal = state.transactions.filter(t=>t.type==='expense').reduce((a,b)=>a+b.amount,0);
+
+            const barCtx = document.getElementById('barChart').getContext('2d');
+            if(barChartInstance) barChartInstance.destroy();
+
+            barChartInstance = new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Total Activity'],
+                    datasets: [
+                        { label: 'Income', data: [incomeTotal], backgroundColor: '#10B981', borderRadius: 5 },
+                        { label: 'Expense', data: [expenseTotal], backgroundColor: '#EF4444', borderRadius: 5 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { ticks: { color: textColor }, grid: { color: isDark ? '#374151' : '#e5e7eb' } },
+                        x: { ticks: { color: textColor }, grid: { display: false } }
+                    },
+                    plugins: { legend: { labels: { color: textColor } } }
+                }
+            });
+        }
+
+        // --- DATA EXPORT ---
+        function exportCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ID,Type,Date,Category,Account,Amount,Currency,Note\n";
+
+            state.transactions.forEach(t => {
+                const row = `${t.id},${t.type},${t.date},${t.category},${t.account},${t.amount},${state.currency},"${t.note}"`;
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "luxury_finance_data.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function clearAllData() {
+            if(confirm("WARNING: This will permanently delete all your financial data. Are you sure?")) {
+                localStorage.removeItem(APP_KEY);
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
